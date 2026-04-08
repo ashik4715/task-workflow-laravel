@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\AuditLog;
 use App\Models\Permission;
 use Illuminate\Http\Request;
@@ -67,12 +68,12 @@ class UserController extends Controller
 
         $oldValues = $user->toArray();
         $user->update($validated);
-        
+
         if (isset($validated['role'])) {
             $user->role = $validated['role'];
             $user->save();
         }
-        
+
         $newValues = $user->fresh()->toArray();
 
         AuditLog::log(User::class, $user->id, 'updated', $oldValues, $newValues);
@@ -130,10 +131,20 @@ class UserController extends Controller
 
     public function permissions(User $user)
     {
+        $roles = Role::with('permissions')->get();
         $allPermissions = Permission::all();
-        $userPermissions = $user->permissions->pluck('id')->toArray();
+        $userDirectPermissions = $user->permissions->pluck('id')->toArray();
 
-        return view('users.permissions', compact('user', 'allPermissions', 'userPermissions'));
+        // Get role permissions
+        $rolePermissionIds = [];
+        if ($user->roleModel) {
+            $rolePermissionIds = $user->roleModel->permissions->pluck('id')->toArray();
+        }
+
+        // For display, we want to show both role and direct permissions as checked
+        $displayPermissions = array_unique(array_merge($userDirectPermissions, $rolePermissionIds));
+
+        return view('users.permissions', compact('user', 'roles', 'allPermissions', 'userDirectPermissions', 'rolePermissionIds', 'displayPermissions'));
     }
 
     public function updatePermissions(Request $request, User $user)
