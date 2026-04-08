@@ -34,6 +34,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:ADMIN')->group(function () {
         Route::get('/users', [WebUserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [WebUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [WebUserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}', [WebUserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [WebUserController::class, 'update']);
         Route::patch('/users/{user}/status', [WebUserController::class, 'updateStatus']);

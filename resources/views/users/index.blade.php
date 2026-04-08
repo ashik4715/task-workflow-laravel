@@ -16,7 +16,12 @@
         </div>
     @endif
 
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">User Management</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
+        <a href="{{ route('users.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            Create User
+        </a>
+    </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -108,7 +113,10 @@
                                     <td class="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{{ $user->created_at->format('M d, Y') }}</td>
                                     <td class="py-3 px-4">
                                         <div class="flex gap-2">
-                                            <form method="POST" action="{{ url('/users/' . $user->id . '/status') }}">
+                                            <a href="{{ route('users.show', $user->id) }}" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
+                                                Edit
+                                            </a>
+                                            <form method="POST" action="{{ url('/users/' . $user->id . '/status') }}" class="inline">
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="is_active" value="{{ $user->is_active ? '0' : '1' }}">
@@ -116,6 +124,15 @@
                                                     {{ $user->is_active ? 'Deactivate' : 'Activate' }}
                                                 </button>
                                             </form>
+                                            @if($user->id !== auth()->id() && $user->role !== 'ADMIN')
+                                            <form method="POST" action="{{ route('users.destroy', $user->id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

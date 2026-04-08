@@ -24,6 +24,34 @@ class UserController extends Controller
         return view('users.index', compact('users'));
     }
 
+    public function create()
+    {
+        return view('users.create');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:8|confirmed',
+            'role' => 'required|in:USER,ADMIN',
+            'is_active' => 'required|boolean',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'is_active' => $validated['is_active'],
+        ]);
+
+        AuditLog::log(User::class, $user->id, 'created', null, $user->toArray());
+
+        return redirect()->route('users.index')->with('success', 'User created successfully');
+    }
+
     public function show(User $user)
     {
         return view('users.show', compact('user'));
