@@ -25,6 +25,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'user.edit', 'description' => 'Edit user profiles'],
             ['name' => 'user.delete', 'description' => 'Delete users'],
             ['name' => 'audit.view', 'description' => 'View audit logs'],
+            ['name' => 'dashboard.view', 'description' => 'View dashboard'],
+            ['name' => 'dashboard.edit', 'description' => 'Edit dashboard'],
+            ['name' => 'dashboard.delete', 'description' => 'Delete dashboard'],
+            ['name' => 'dashboard.all', 'description' => 'All dashboard actions'],
+            ['name' => 'user.all', 'description' => 'All user actions'],
+            ['name' => 'task.all', 'description' => 'All task actions'],
         ];
 
         foreach ($permissions as $permission) {

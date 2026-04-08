@@ -18,6 +18,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Profile routes
+    Route::get('/profile', [WebUserController::class, 'editProfile'])->name('profile.edit');
+    Route::put('/profile', [WebUserController::class, 'updateProfile'])->name('profile.update');
+
     Route::get('/tasks', [WebTaskController::class, 'index']);
     Route::post('/tasks', [WebTaskController::class, 'store']);
     Route::get('/tasks/create', [WebTaskController::class, 'create']);
@@ -33,15 +37,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{user}', [WebUserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [WebUserController::class, 'update']);
         Route::patch('/users/{user}/status', [WebUserController::class, 'updateStatus']);
+        Route::delete('/users/{user}', [WebUserController::class, 'destroy'])->name('users.destroy');
         Route::get('/users/{user}/permissions', [WebUserController::class, 'permissions'])->name('users.permissions');
         Route::put('/users/{user}/permissions', [WebUserController::class, 'updatePermissions'])->name('users.updatePermissions');
         Route::get('/audit-logs', [WebUserController::class, 'auditLogs']);
-        
+
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::post('/roles', [RoleController::class, 'store']);
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
         Route::get('/roles/{role}', [RoleController::class, 'show'])->name('roles.show');
-        Route::put('/roles/{role}', [RoleController::class, 'update']);
-        Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
+        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
         Route::put('/roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.updatePermissions');
     });
 });

@@ -25,9 +25,9 @@ class Role extends Model
         return $this->belongsToMany(Permission::class, 'role_permissions');
     }
 
-    public function users(): BelongsToMany
+    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->belongsToMany(User::class, 'users');
+        return $this->hasMany(User::class, 'role_id');
     }
 
     public function hasPermission(string $permissionName): bool

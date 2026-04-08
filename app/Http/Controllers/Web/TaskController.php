@@ -14,7 +14,7 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         $tasks = Task::with('user')
             ->when(!$user->isAdmin(), function ($query) use ($user) {
                 $query->where('user_id', $user->id);
@@ -25,7 +25,7 @@ class TaskController extends Controller
             ->when($request->search, function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
                     $q->where('title', 'like', '%' . $request->search . '%')
-                      ->orWhere('description', 'like', '%' . $request->search . '%');
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
                 });
             })
             ->orderBy('created_at', 'desc')
@@ -72,8 +72,8 @@ class TaskController extends Controller
     public function update(Request $request, Task $task)
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && $task->user_id !== $user->id) {
-            abort(403);
+        if (!$user->isAdmin()) {
+            abort(403, 'Only administrators can update tasks.');
         }
 
         $validated = $request->validate([
@@ -98,13 +98,13 @@ class TaskController extends Controller
     public function destroy(Task $task)
     {
         $user = Auth::user();
-        if (!$user->isAdmin() && $task->user_id !== $user->id) {
-            abort(403);
+        if (!$user->isAdmin()) {
+            abort(403, 'Only administrators can delete tasks.');
         }
 
         $oldValues = $task->toArray();
         $task->delete();
-        
+
         AuditLog::log(Task::class, $task->id, 'deleted', $oldValues, null);
 
         return redirect('/tasks')->with('success', 'Task deleted successfully');
