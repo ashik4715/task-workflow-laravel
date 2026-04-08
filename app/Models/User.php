@@ -19,6 +19,7 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'password',
         'role',
+        'role_id',
         'is_active',
     ];
 
@@ -90,6 +91,19 @@ class User extends Authenticatable implements JWTSubject
 
     public function hasPermission(string $permissionName): bool
     {
-        return $this->permissions()->where('name', $permissionName)->exists() || $this->isAdmin();
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->roleModel && $this->roleModel->hasPermission($permissionName)) {
+            return true;
+        }
+
+        return $this->permissions()->where('name', $permissionName)->exists();
+    }
+
+    public function roleModel(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
     }
 }

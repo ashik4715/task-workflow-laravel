@@ -252,6 +252,103 @@ For complete API details, see [api_documentation.md](api_documentation.md)
 - Task management with filtering and pagination
 - Comments system
 
+## Frequently Asked Questions
+
+### How are you validating and extracting user information from JWT?
+
+JWT validation is handled by the `tymon/jwt-auth` package. When a user logs in, the system generates a JWT token containing the user's ID and role. This token is included in the `Authorization` header of API requests.
+
+**Implementation**:
+- The `AuthController` uses `JWTAuth::attempt()` to validate credentials and generate tokens
+- The `getJWTIdentifier()` method in the User model returns the user's primary key
+- The `getJWTCustomClaims()` method adds custom data (like role) to the token
+- All API controllers use `auth()->user()` or `$request->user()` to retrieve the authenticated user from the token
+
+### Where is authorization enforced in your system?
+
+Authorization is enforced at multiple levels:
+
+1. **Middleware Level**: Laravel middleware in `app/Http/Middleware/RoleMiddleware.php` checks user roles
+2. **Controller Level**: API controllers check `$user->isAdmin()` before allowing admin actions
+3. **Route Level**: The `role:ADMIN` middleware protects admin-only routes in `routes/api.php` and `routes/web.php`
+
+### How do you ensure only ADMIN can manage users?
+
+User management endpoints are protected by the `role:ADMIN` middleware:
+
+```php
+Route::middleware('role:ADMIN')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+    Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
+    // ... other admin routes
+});
+```
+
+Additionally, the controller checks `$request->user()->isAdmin()` before processing any admin actions.
+
+### How do you restrict users from accessing others' tasks?
+
+Task access is controlled in the TaskController:
+
+```php
+// Users can only see their own tasks
+$tasks = Task::where('user_id', auth()->id())->get();
+
+// Admin can see all tasks
+if (auth()->user()->isAdmin()) {
+    $tasks = Task::all();
+}
+```
+
+For single task access:
+```php
+$task = Task::where('id', $id)
+    ->where(function ($query) {
+        $query->where('user_id', auth()->id())
+              ->orWhere('user_id', auth()->user()->isAdmin());
+    })->first();
+```
+
+### How are you enforcing valid state transitions?
+
+Task status transitions are validated in the Task model using a transition map:
+
+```php
+private static $transitions = [
+    'PENDING' => ['IN_PROGRESS', 'COMPLETED'],
+    'IN_PROGRESS' => ['COMPLETED'],
+    'COMPLETED' => ['APPROVED', 'REJECTED'],
+    'REJECTED' => ['PENDING'],
+];
+
+public function canTransitionTo(string $newStatus): bool
+{
+    return in_array($newStatus, self::$transitions[$this->status] ?? []);
+}
+```
+
+If an invalid transition is attempted, the API returns a 422 error with a clear message.
+
+### How is audit data populated automatically?
+
+The `AuditLog` model has a static `log()` method that creates audit entries:
+
+```php
+AuditLog::log(User::class, $user->id, 'updated', $oldValues, $newValues);
+```
+
+This is called in controllers after any create, update, or delete operation, automatically capturing:
+- `createdBy` and `updatedBy` - from `auth()->id()`
+- `createdAt` and `updatedAt` - automatic Laravel timestamps
+- Entity changes - stored as JSON for diff viewing
+
+### How do you prevent unauthorized API access?
+
+1. **JWT Authentication**: All protected routes require valid JWT token
+2. **Role Middleware**: `role:ADMIN` middleware blocks non-admin users
+3. **Ownership Checks**: Controllers verify task ownership before allowing modifications
+4. **Policy/Gate**: Laravel's authorization system can be used for method-level security
+
 ## License
 
 This project is open source and available for learning and development.
