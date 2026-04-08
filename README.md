@@ -158,8 +158,7 @@ After setting up, you can test with these accounts:
 |--------------|-------|----------|
 | Admin | admin@example.com | password |
 | User | user@example.com | password |
-| Brand Manager | brandmanager@example.com | password |
-| Manager | manager@example.com | password |
+| Brand Manager | brand@example.com | password |
 
 ## API Examples
 
@@ -172,17 +171,6 @@ curl -X POST http://localhost:8000/api/tasks \
   -d '{
     "title": "Build a website",
     "description": "Create a simple business website"
-  }'
-```
-
-### Update Task Status
-
-```bash
-curl -X PUT http://localhost:8000/api/tasks/1 \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "COMPLETED"
   }'
 ```
 
