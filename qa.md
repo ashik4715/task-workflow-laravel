@@ -2,12 +2,7 @@
 
 ## Architecture Changes
 
-### Before (Old Architecture)
-- Users had direct permissions via `user_permissions` table
-- Admin check was done via `isAdmin()` method
-- Permission checking was manual in controllers
-
-### After (New Architecture)
+### (Architecture)
 - Permissions managed only through roles (RBAC)
 - `user_permissions` table removed
 - Laravel Gates used for authorization
