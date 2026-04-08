@@ -59,12 +59,31 @@
                 </div>
                 
                 <div>
-                    <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+                    <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auth Role</label>
                     <select name="role" id="role" required
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="USER">User</option>
                         <option value="ADMIN">Admin</option>
                     </select>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        This determines authentication and high-level access.
+                    </p>
+                </div>
+
+                <div>
+                    <label for="role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Associate Role (Optional)</label>
+                    <select name="role_id" id="role_id"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Select Role --</option>
+                        @if(isset($roles))
+                            @foreach($roles as $role)
+                                <option value="{{ $role->id }}">{{ $role->name }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Assign a role to grant permissions from role_permissions configuration.
+                    </p>
                 </div>
                 
                 <div>

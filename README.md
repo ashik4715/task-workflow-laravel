@@ -1,6 +1,6 @@
 # Task Workflow Management System
 
-A Laravel-based REST API for managing tasks with approval workflows, user roles, and audit tracking.
+A Laravel-based REST API for managing tasks with approval workflows, user roles, permissions, and audit tracking.
 
 ## What This System Does
 
@@ -10,23 +10,75 @@ This is a backend system that allows:
 - Administrators to approve or reject completed tasks
 - Everyone to add comments on tasks
 - All actions to be tracked for security
+- Role-based permission management with Gate::authorize()
+
+## Architecture Overview
+
+### Two-Level Access Control System
+
+The system uses a **dual-layer permission model**:
+
+1. **Auth Role (role column)** - Determines high-level access:
+   - `USER` - Regular authenticated user
+   - `ADMIN` - Full administrative access
+
+2. **Associated Role (role_id column)** - Determines granular permissions:
+   - Links to the `roles` table
+   - Permissions are managed through `role_permissions` pivot table
+   - Users inherit permissions from their assigned role
+
+### Permission Flow
+
+```
+User Model (role: USER/ADMIN)
+    └── role_id → Role Model (has permissions via role_permissions)
+              └── Permissions (via BelongsToMany relationship)
+```
+
+### Removed: user_permissions Table
+
+The `user_permissions` table has been removed. Permissions are now managed exclusively through:
+- **Roles**: Define sets of permissions
+- **Role Permissions**: Link tables that connect roles to permissions
+- **User Role Assignment**: Users are assigned to roles which grant permissions
 
 ## User Roles
 
-### Regular User (USER)
-- Create new tasks
-- Update own tasks
-- Mark tasks as completed
-- Add comments to tasks
-- View own profile
+### Auth Role (role column)
+- **USER**: Regular user with basic task access
+- **ADMIN**: Full system access with all capabilities
 
-### Administrator (ADMIN)
-- All regular user permissions
-- View all users
-- Change user status (active/inactive)
-- View all tasks
-- Approve or reject completed tasks
-- View audit logs
+### Associated Roles (via role_id)
+- **ADMIN**: Full permissions (all CRUD + approve/reject)
+- **MANAGER**: Task management + approval/rejection
+- **BRAND_MANAGER**: Limited task operations
+- **USER**: Basic task creation and editing
+
+## Access Control Implementation
+
+### Using Laravel Gates (Manual Implementation)
+
+The system uses Laravel's native Gate facade for authorization:
+
+```php
+// In AppServiceProvider - Define gates
+Gate::define('task.create', function (User $user) {
+    return $user->roleModel && $user->roleModel->hasPermission('task.create');
+});
+
+// In controllers/views - Check permissions
+if (Gate::allows('task.create')) { ... }
+
+// Or using Blade directives
+@can('task.create')
+    <button>Create Task</button>
+@endcan
+```
+
+### Middleware Protection
+
+- `role:ADMIN` middleware protects admin routes
+- Gates provide method-level authorization
 
 ## Quick Start
 
@@ -38,7 +90,6 @@ composer install
 
 ### 2. Set Up Environment
 
-Copy the example environment file:
 ```bash
 copy .env.example .env
 ```
@@ -69,8 +120,6 @@ The API will be available at `http://localhost:8000/api`
 
 ### Step 1: Create an Account
 
-Register as a new user:
-
 ```bash
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -84,8 +133,6 @@ curl -X POST http://localhost:8000/api/auth/register \
 
 ### Step 2: Login
 
-Get your authentication token:
-
 ```bash
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -94,8 +141,6 @@ curl -X POST http://localhost:8000/api/auth/login \
     "password": "password"
   }'
 ```
-
-The response will give you a token. Use this token for all future requests.
 
 ### Step 3: Use the Token
 
@@ -113,6 +158,8 @@ After setting up, you can test with these accounts:
 |--------------|-------|----------|
 | Admin | admin@example.com | password |
 | User | user@example.com | password |
+| Brand Manager | brandmanager@example.com | password |
+| Manager | manager@example.com | password |
 
 ## API Examples
 
@@ -187,23 +234,35 @@ PENDING → IN_PROGRESS → COMPLETED → APPROVED
 ## Database Tables
 
 ### users
-Stores all user accounts with role (USER or ADMIN) and active status.
+Stores all user accounts with:
+- `role` (USER/ADMIN) - Auth level
+- `role_id` - Associated role from roles table
+
+### roles
+Stores role definitions with permissions
+
+### permissions
+Stores all available permissions
+
+### role_permissions (Pivot)
+Links roles to permissions (Many-to-Many)
 
 ### tasks
-Stores all tasks with title, description, status, and who created/updated.
+Stores all tasks with title, description, status, and owner
 
 ### task_comments
-Stores comments on tasks with user reference and timestamp.
+Stores comments on tasks
 
 ### audit_logs
-Tracks all important actions for security and debugging.
+Tracks all important actions for security
 
 ## Security Features
 
-1. **Password Encryption**: All passwords are encrypted using BCrypt
-2. **JWT Tokens**: Secure authentication with token expiration
-3. **Role-Based Access**: Different permissions for users and admins
-4. **Audit Logging**: Every important action is recorded
+1. **Password Encryption**: BCrypt hashing
+2. **JWT Tokens**: Secure authentication
+3. **Role-Based Access Control**: Two-level auth system
+4. **Gate Authorization**: Permission checking via Laravel Gates
+5. **Audit Logging**: All actions tracked
 
 ## Project Structure
 
@@ -211,32 +270,34 @@ Tracks all important actions for security and debugging.
 app/
 ├── Http/
 │   ├── Controllers/Api/    # API controllers
+│   ├── Controllers/Web/    # Web controllers
 │   └── Middleware/         # Role checking
-├── Models/                 # Database models
+├── Models/                 # Database models (User, Role, Permission, Task)
+├── Providers/             # AppServiceProvider (Gates defined here)
 config/                    # Configuration files
 database/
 ├── migrations/            # Database structure
 └── seeders/              # Sample data
 routes/
-└── api.php               # API routes
+├── api.php               # API routes
+└── web.php               # Web routes
 ```
 
 ## Common Issues and Solutions
 
 ### Token Expiration
-If your token expires, use the refresh endpoint:
 ```bash
 curl -X POST http://localhost:8000/api/auth/refresh \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### 403 Forbidden Error
-This means you don't have permission. Make sure:
-- You are using the correct role token
-- Your account is active
+- Verify your auth role (USER/ADMIN)
+- Check associated role permissions in roles.show blade
+- Ensure role has required permissions assigned
 
 ### Invalid Status Transition
-You cannot change to every status. Check the workflow section above.
+Check the workflow section above for valid transitions.
 
 ## API Documentation
 
@@ -246,108 +307,51 @@ For complete API details, see [api_documentation.md](api_documentation.md)
 
 - JWT-based authentication
 - Role-Based Access Control (RBAC)
-- Task workflow with approval process
+- Two-level permission system (Auth Role + Associated Role)
+- Laravel Gates for authorization
+- Task workflow with approval
 - Audit tracking
-- User management
-- Task management with filtering and pagination
+- User management with role assignment
+- Task management with filtering/pagination
 - Comments system
 
 ## Frequently Asked Questions
 
-### How are you validating and extracting user information from JWT?
+### How do permissions work now?
 
-JWT validation is handled by the `tymon/jwt-auth` package. When a user logs in, the system generates a JWT token containing the user's ID and role. This token is included in the `Authorization` header of API requests.
+1. Admin creates roles and assigns permissions in Roles section
+2. Users are assigned an associated role in their profile
+3. Permissions are checked via Laravel Gates in AppServiceProvider
+4. Admin users (role=ADMIN) have automatic access to everything
 
-**Implementation**:
-- The `AuthController` uses `JWTAuth::attempt()` to validate credentials and generate tokens
-- The `getJWTIdentifier()` method in the User model returns the user's primary key
-- The `getJWTCustomClaims()` method adds custom data (like role) to the token
-- All API controllers use `auth()->user()` or `$request->user()` to retrieve the authenticated user from the token
+### How do I create a Brand Manager?
 
-### Where is authorization enforced in your system?
+1. Run `php artisan db:seed` to create roles and permissions
+2. Create a user with role=USER
+3. In user edit, set "Associate Role" to BRAND_MANAGER
+4. The user will inherit Brand Manager permissions
 
-Authorization is enforced at multiple levels:
+### Why was user_permissions removed?
 
-1. **Middleware Level**: Laravel middleware in `app/Http/Middleware/RoleMiddleware.php` checks user roles
-2. **Controller Level**: API controllers check `$user->isAdmin()` before allowing admin actions
-3. **Route Level**: The `role:ADMIN` middleware protects admin-only routes in `routes/api.php` and `routes/web.php`
+The user_permissions table was redundant. Permissions are now managed through:
+- Roles define permission sets
+- Users are assigned roles
+- All permission checks go through the role
 
-### How do you ensure only ADMIN can manage users?
+This is cleaner and follows standard RBAC practices.
 
-User management endpoints are protected by the `role:ADMIN` middleware:
+### How is authorization enforced?
 
-```php
-Route::middleware('role:ADMIN')->group(function () {
-    Route::get('/users', [UserController::class, 'index']);
-    Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
-    // ... other admin routes
-});
-```
+1. **Middleware**: `role:ADMIN` protects admin routes
+2. **Gates**: Defined in AppServiceProvider, checked via Gate::allows()
+3. **Blade**: @can('permission') directives
+4. **Controller**: Manual Gate::denies() checks
 
-Additionally, the controller checks `$request->user()->isAdmin()` before processing any admin actions.
+### Can I add permissions directly to a user?
 
-### How do you restrict users from accessing others' tasks?
-
-Task access is controlled in the TaskController:
-
-```php
-// Users can only see their own tasks
-$tasks = Task::where('user_id', auth()->id())->get();
-
-// Admin can see all tasks
-if (auth()->user()->isAdmin()) {
-    $tasks = Task::all();
-}
-```
-
-For single task access:
-```php
-$task = Task::where('id', $id)
-    ->where(function ($query) {
-        $query->where('user_id', auth()->id())
-              ->orWhere('user_id', auth()->user()->isAdmin());
-    })->first();
-```
-
-### How are you enforcing valid state transitions?
-
-Task status transitions are validated in the Task model using a transition map:
-
-```php
-private static $transitions = [
-    'PENDING' => ['IN_PROGRESS', 'COMPLETED'],
-    'IN_PROGRESS' => ['COMPLETED'],
-    'COMPLETED' => ['APPROVED', 'REJECTED'],
-    'REJECTED' => ['PENDING'],
-];
-
-public function canTransitionTo(string $newStatus): bool
-{
-    return in_array($newStatus, self::$transitions[$this->status] ?? []);
-}
-```
-
-If an invalid transition is attempted, the API returns a 422 error with a clear message.
-
-### How is audit data populated automatically?
-
-The `AuditLog` model has a static `log()` method that creates audit entries:
-
-```php
-AuditLog::log(User::class, $user->id, 'updated', $oldValues, $newValues);
-```
-
-This is called in controllers after any create, update, or delete operation, automatically capturing:
-- `createdBy` and `updatedBy` - from `auth()->id()`
-- `createdAt` and `updatedAt` - automatic Laravel timestamps
-- Entity changes - stored as JSON for diff viewing
-
-### How do you prevent unauthorized API access?
-
-1. **JWT Authentication**: All protected routes require valid JWT token
-2. **Role Middleware**: `role:ADMIN` middleware blocks non-admin users
-3. **Ownership Checks**: Controllers verify task ownership before allowing modifications
-4. **Policy/Gate**: Laravel's authorization system can be used for method-level security
+No. All permissions come through the associated role. To customize a user's permissions:
+1. Create a new role with the desired permissions
+2. Assign that role to the user
 
 ## License
 

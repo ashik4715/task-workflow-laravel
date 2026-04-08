@@ -25,11 +25,6 @@ class Role extends Model
         return $this->belongsToMany(Permission::class, 'role_permissions');
     }
 
-    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(User::class, 'role_id');
-    }
-
     public function hasPermission(string $permissionName): bool
     {
         return $this->permissions()->where('name', $permissionName)->exists();

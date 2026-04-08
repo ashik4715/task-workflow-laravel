@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AuditLog;
-use App\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -18,16 +17,21 @@ class UserController extends Controller
         $users = User::with('roleModel.permissions')
             ->when($request->role, function ($query) use ($request) {
                 $query->where('role', $request->role);
+            })->when($request->role_id, function ($query) use ($request) {
+                $query->where('role_id', $request->role_id);
             })->when($request->is_active !== null, function ($query) use ($request) {
                 $query->where('is_active', $request->boolean('is_active'));
             })->paginate(10);
 
-        return view('users.index', compact('users'));
+        $roles = Role::where('is_active', true)->get();
+
+        return view('users.index', compact('users', 'roles'));
     }
 
     public function create()
     {
-        return view('users.create');
+        $roles = Role::where('is_active', true)->get();
+        return view('users.create', compact('roles'));
     }
 
     public function store(Request $request)
@@ -37,6 +41,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8|confirmed',
             'role' => 'required|in:USER,ADMIN',
+            'role_id' => 'nullable|exists:roles,id',
             'is_active' => 'required|boolean',
         ]);
 
@@ -45,17 +50,24 @@ class UserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
+            'role_id' => $validated['role_id'] ?? null,
             'is_active' => $validated['is_active'],
         ]);
 
-        AuditLog::log(User::class, $user->id, 'created', null, $user->toArray());
+        AuditLog::log(User::class, $user->id, 'created', null, [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'role_id' => $user->role_id,
+        ]);
 
         return redirect()->route('users.index')->with('success', 'User created successfully');
     }
 
     public function show(User $user)
     {
-        return view('users.show', compact('user'));
+        $roles = Role::where('is_active', true)->get();
+        return view('users.show', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)
@@ -64,19 +76,26 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'role' => 'sometimes|in:USER,ADMIN',
+            'role_id' => 'nullable|exists:roles,id',
         ]);
 
-        $oldValues = $user->toArray();
+        $oldData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'role_id' => $user->role_id,
+        ];
+
         $user->update($validated);
 
-        if (isset($validated['role'])) {
-            $user->role = $validated['role'];
-            $user->save();
-        }
+        $newData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'role_id' => $user->role_id,
+        ];
 
-        $newValues = $user->fresh()->toArray();
-
-        AuditLog::log(User::class, $user->id, 'updated', $oldValues, $newValues);
+        AuditLog::log(User::class, $user->id, 'updated', $oldData, $newData);
 
         return back()->with('success', 'User updated successfully');
     }
@@ -87,11 +106,13 @@ class UserController extends Controller
             'is_active' => 'required|boolean',
         ]);
 
-        $oldValues = $user->toArray();
-        $user->update($validated);
-        $newValues = $user->fresh()->toArray();
+        $oldData = ['is_active' => $user->is_active];
 
-        AuditLog::log(User::class, $user->id, 'status_changed', $oldValues, $newValues);
+        $user->update($validated);
+
+        $newData = ['is_active' => $user->is_active];
+
+        AuditLog::log(User::class, $user->id, 'status_changed', $oldData, $newData);
 
         return back()->with('success', 'User status updated successfully');
     }
@@ -106,10 +127,14 @@ class UserController extends Controller
             return back()->with('error', 'Cannot delete ADMIN user.');
         }
 
-        $oldValues = $user->toArray();
+        $oldData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+        ];
         $user->delete();
 
-        AuditLog::log(User::class, $user->id, 'deleted', $oldValues, null);
+        AuditLog::log(User::class, $user->id, 'deleted', $oldData, null);
 
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
     }
@@ -129,38 +154,6 @@ class UserController extends Controller
         return view('users.audit-logs', compact('logs'));
     }
 
-    public function permissions(User $user)
-    {
-        $roles = Role::with('permissions')->get();
-        $allPermissions = Permission::all();
-        $userDirectPermissions = $user->permissions->pluck('id')->toArray();
-
-        // Get role permissions
-        $rolePermissionIds = [];
-        if ($user->roleModel) {
-            $rolePermissionIds = $user->roleModel->permissions->pluck('id')->toArray();
-        }
-
-        // For display, we want to show both role and direct permissions as checked
-        $displayPermissions = array_unique(array_merge($userDirectPermissions, $rolePermissionIds));
-
-        return view('users.permissions', compact('user', 'roles', 'allPermissions', 'userDirectPermissions', 'rolePermissionIds', 'displayPermissions'));
-    }
-
-    public function updatePermissions(Request $request, User $user)
-    {
-        $validated = $request->validate([
-            'permissions' => 'array',
-            'permissions.*' => 'integer|exists:permissions,id',
-        ]);
-
-        $user->permissions()->sync($validated['permissions'] ?? []);
-
-        AuditLog::log(User::class, $user->id, 'permissions_updated', [], ['permissions' => $validated['permissions'] ?? []]);
-
-        return back()->with('success', 'Permissions updated successfully');
-    }
-
     public function editProfile()
     {
         $user = Auth::user();
@@ -178,25 +171,23 @@ class UserController extends Controller
             'password' => 'nullable|min:8|confirmed',
         ]);
 
-        // Update name and email
-        $oldValues = $user->toArray();
+        $oldData = ['name' => $user->name, 'email' => $user->email];
+
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        // Update password if provided
         if (!empty($validated['password'])) {
             if (!Hash::check($validated['current_password'], $user->password)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'current_password' => 'Current password is incorrect.',
-                ]);
+                return back()->withErrors(['current_password' => 'Current password is incorrect.']);
             }
             $user->password = Hash::make($validated['password']);
         }
 
         $user->save();
-        $newValues = $user->fresh()->toArray();
 
-        AuditLog::log(User::class, $user->id, 'profile_updated', $oldValues, $newValues);
+        $newData = ['name' => $user->name, 'email' => $user->email];
+
+        AuditLog::log(User::class, $user->id, 'profile_updated', $oldData, $newData);
 
         return redirect()->route('profile.edit')->with('success', 'Profile updated successfully.');
     }

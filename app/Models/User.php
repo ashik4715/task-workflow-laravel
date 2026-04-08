@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Gate;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
@@ -59,6 +60,20 @@ class User extends Authenticatable implements JWTSubject
         return $this->is_active === true;
     }
 
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roleModel && $this->roleModel->name === $roleName;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return Gate::check($permission);
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class, 'user_id');
@@ -84,25 +99,7 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(AuditLog::class);
     }
 
-    public function permissions(): BelongsToMany
-    {
-        return $this->belongsToMany(Permission::class, 'user_permissions');
-    }
-
-    public function hasPermission(string $permissionName): bool
-    {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        if ($this->roleModel && $this->roleModel->hasPermission($permissionName)) {
-            return true;
-        }
-
-        return $this->permissions()->where('name', $permissionName)->exists();
-    }
-
-    public function roleModel(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function roleModel(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
     }

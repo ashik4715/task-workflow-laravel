@@ -25,6 +25,16 @@
                     </span>
                 </div>
                 <div>
+                    <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Associated Role</h2>
+                    @if($user->roleModel)
+                        <span class="px-2 py-1 text-sm rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200">
+                            {{ $user->roleModel->name }}
+                        </span>
+                    @else
+                        <span class="text-sm text-gray-500 dark:text-gray-400">No role assigned</span>
+                    @endif
+                </div>
+                <div>
                     <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Status</h2>
                     <span class="px-2 py-1 text-sm rounded-full {{ $user->is_active ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' }}">
                         {{ $user->is_active ? 'Active' : 'Inactive' }}
@@ -34,14 +44,11 @@
                     <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Created At</h2>
                     <p class="text-gray-700 dark:text-gray-300">{{ $user->created_at->format('M d, Y g:i A') }}</p>
                 </div>
-                <div>
-                    <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Updated At</h2>
-                    <p class="text-gray-700 dark:text-gray-300">{{ $user->updated_at->format('M d, Y g:i A') }}</p>
-                </div>
             </div>
         </div>
     </div>
 
+    @can('user.edit')
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h2>
@@ -70,6 +77,21 @@
                     <option value="ADMIN" {{ $user->role == 'ADMIN' ? 'selected' : '' }}>Admin</option>
                 </select>
             </div>
+
+            <div class="mb-4">
+                <label for="role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Associate Role</label>
+                <select name="role_id" id="role_id" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Select Role --</option>
+                    @foreach($roles as $role)
+                        <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}>
+                            {{ $role->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Select a role to grant permissions based on role configuration.
+                </p>
+            </div>
             
             <div class="flex gap-4">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
@@ -81,11 +103,6 @@
             </div>
         </form>
     </div>
-
-    <div class="flex gap-4">
-        <a href="{{ route('users.permissions', $user->id) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            Manage Permissions
-        </a>
-    </div>
+    @endcan
 </div>
 @endsection

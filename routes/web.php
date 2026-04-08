@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\TaskController as WebTaskController;
 use App\Http\Controllers\Web\UserController as WebUserController;
 use App\Http\Controllers\Web\RoleController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -18,7 +19,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Profile routes
     Route::get('/profile', [WebUserController::class, 'editProfile'])->name('profile.edit');
     Route::put('/profile', [WebUserController::class, 'updateProfile'])->name('profile.update');
 
@@ -40,8 +40,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/users/{user}', [WebUserController::class, 'update']);
         Route::patch('/users/{user}/status', [WebUserController::class, 'updateStatus']);
         Route::delete('/users/{user}', [WebUserController::class, 'destroy'])->name('users.destroy');
-        Route::get('/users/{user}/permissions', [WebUserController::class, 'permissions'])->name('users.permissions');
-        Route::put('/users/{user}/permissions', [WebUserController::class, 'updatePermissions'])->name('users.updatePermissions');
         Route::get('/audit-logs', [WebUserController::class, 'auditLogs']);
 
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
@@ -54,7 +52,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/', function () {
-    if (Auth::check()) {
+    if (Auth::user()) {
         return redirect('/dashboard');
     }
     return redirect('/login');

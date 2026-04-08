@@ -31,6 +31,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'dashboard.all', 'description' => 'All dashboard actions'],
             ['name' => 'user.all', 'description' => 'All user actions'],
             ['name' => 'task.all', 'description' => 'All task actions'],
+            ['name' => 'role.manage', 'description' => 'Manage roles'],
+            ['name' => 'permission.manage', 'description' => 'Manage permissions'],
         ];
 
         foreach ($permissions as $permission) {
