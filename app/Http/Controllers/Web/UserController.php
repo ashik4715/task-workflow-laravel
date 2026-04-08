@@ -124,7 +124,7 @@ class UserController extends Controller
                 $query->where('action', $request->action);
             })
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->paginate(10);
 
         return view('users.audit-logs', compact('logs'));
     }
