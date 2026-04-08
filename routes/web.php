@@ -28,10 +28,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/tasks/{task}/comments', [WebTaskController::class, 'storeComment']);
 
     Route::middleware('role:ADMIN')->group(function () {
-        Route::get('/users', [WebUserController::class, 'index']);
-        Route::get('/users/{user}', [WebUserController::class, 'show']);
+        Route::get('/users', [WebUserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}', [WebUserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [WebUserController::class, 'update']);
         Route::patch('/users/{user}/status', [WebUserController::class, 'updateStatus']);
+        Route::get('/users/{user}/permissions', [WebUserController::class, 'permissions'])->name('users.permissions');
+        Route::put('/users/{user}/permissions', [WebUserController::class, 'updatePermissions'])->name('users.updatePermissions');
         Route::get('/audit-logs', [WebUserController::class, 'auditLogs']);
     });
 });

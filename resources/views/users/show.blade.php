@@ -46,6 +46,9 @@
         <a href="{{ url('/users') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">
             Back to Users
         </a>
+        <a href="{{ route('users.permissions', $user->id) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            Manage Permissions
+        </a>
     </div>
 </div>
 @endsection

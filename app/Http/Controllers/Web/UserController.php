@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -71,5 +72,27 @@ class UserController extends Controller
             ->paginate(15);
 
         return view('users.audit-logs', compact('logs'));
+    }
+
+    public function permissions(User $user)
+    {
+        $allPermissions = Permission::all();
+        $userPermissions = $user->permissions->pluck('id')->toArray();
+
+        return view('users.permissions', compact('user', 'allPermissions', 'userPermissions'));
+    }
+
+    public function updatePermissions(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'permissions' => 'array',
+            'permissions.*' => 'integer|exists:permissions,id',
+        ]);
+
+        $user->permissions()->sync($validated['permissions'] ?? []);
+
+        AuditLog::log(User::class, $user->id, 'permissions_updated', [], ['permissions' => $validated['permissions'] ?? []]);
+
+        return back()->with('success', 'Permissions updated successfully');
     }
 }

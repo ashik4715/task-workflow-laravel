@@ -1,0 +1,37 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Permission;
+use Illuminate\Database\Seeder;
+
+class PermissionSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $permissions = [
+            ['name' => 'task.create', 'description' => 'Create new tasks'],
+            ['name' => 'task.view', 'description' => 'View own tasks'],
+            ['name' => 'task.view_any', 'description' => 'View all tasks'],
+            ['name' => 'task.edit', 'description' => 'Edit own tasks'],
+            ['name' => 'task.edit_any', 'description' => 'Edit any task'],
+            ['name' => 'task.delete', 'description' => 'Delete own tasks'],
+            ['name' => 'task.delete_any', 'description' => 'Delete any task'],
+            ['name' => 'task.approve', 'description' => 'Approve tasks'],
+            ['name' => 'task.reject', 'description' => 'Reject tasks'],
+            ['name' => 'comment.create', 'description' => 'Add comments to tasks'],
+            ['name' => 'comment.delete', 'description' => 'Delete comments'],
+            ['name' => 'user.view', 'description' => 'View user profiles'],
+            ['name' => 'user.edit', 'description' => 'Edit user profiles'],
+            ['name' => 'user.delete', 'description' => 'Delete users'],
+            ['name' => 'audit.view', 'description' => 'View audit logs'],
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::updateOrCreate(
+                ['name' => $permission['name']],
+                $permission
+            );
+        }
+    }
+}
