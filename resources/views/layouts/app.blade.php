@@ -136,14 +136,39 @@
 
     <script>
         const themeToggle = document.getElementById('theme-toggle');
-        themeToggle.addEventListener('click', function () {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    updateThemeIcons('light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    updateThemeIcons('dark');
+                }
+            });
+        }
+
+        function updateThemeIcons(theme) {
+            const sunIcon = document.getElementById('sun-icon');
+            const moonIcon = document.getElementById('moon-icon');
+            const sunText = document.querySelector('span.dark\\:hidden');
+            const moonText = document.querySelector('span.hidden.dark\\:inline');
+
+            if (theme === 'dark') {
+                if (sunIcon) sunIcon.classList.remove('hidden');
+                if (moonIcon) moonIcon.classList.add('hidden');
             } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
+                if (sunIcon) sunIcon.classList.add('hidden');
+                if (moonIcon) moonIcon.classList.remove('hidden');
             }
+        }
+
+        // Initialize icons on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const isDark = document.documentElement.classList.contains('dark');
+            updateThemeIcons(isDark ? 'dark' : 'light');
         });
     </script>
 </body>

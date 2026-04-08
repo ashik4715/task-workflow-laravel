@@ -14,11 +14,12 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $users = User::when($request->role, function ($query) use ($request) {
-            $query->where('role', $request->role);
-        })->when($request->is_active !== null, function ($query) use ($request) {
-            $query->where('is_active', $request->boolean('is_active'));
-        })->paginate(10);
+        $users = User::with('roleModel.permissions')
+            ->when($request->role, function ($query) use ($request) {
+                $query->where('role', $request->role);
+            })->when($request->is_active !== null, function ($query) use ($request) {
+                $query->where('is_active', $request->boolean('is_active'));
+            })->paginate(10);
 
         return view('users.index', compact('users'));
     }

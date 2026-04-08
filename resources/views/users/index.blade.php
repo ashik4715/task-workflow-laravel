@@ -57,6 +57,7 @@
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Name</th>
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Email</th>
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Role</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Permissions</th>
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Status</th>
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Created</th>
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
@@ -73,6 +74,33 @@
                                         </span>
                                     </td>
                                     <td class="py-3 px-4">
+                                        @if($user->roleModel && $user->roleModel->permissions->count() > 0)
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach($user->roleModel->permissions->take(3) as $perm)
+                                                    <span class="px-1 py-0.5 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
+                                                        {{ $perm->name }}
+                                                    </span>
+                                                @endforeach
+                                                @if($user->roleModel->permissions->count() > 3)
+                                                    <span class="px-1 py-0.5 text-xs text-gray-500 dark:text-gray-400">+{{ $user->roleModel->permissions->count() - 3 }}</span>
+                                                @endif
+                                            </div>
+                                        @elseif($user->permissions->count() > 0)
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach($user->permissions->take(3) as $perm)
+                                                    <span class="px-1 py-0.5 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
+                                                        {{ $perm->name }}
+                                                    </span>
+                                                @endforeach
+                                                @if($user->permissions->count() > 3)
+                                                    <span class="px-1 py-0.5 text-xs text-gray-500 dark:text-gray-400">+{{ $user->permissions->count() - 3 }}</span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-xs text-gray-400 dark:text-gray-500">No permissions</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 px-4">
                                         <span class="px-2 py-1 text-xs rounded-full {{ $user->is_active ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' }}">
                                             {{ $user->is_active ? 'Active' : 'Inactive' }}
                                         </span>
@@ -80,9 +108,6 @@
                                     <td class="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{{ $user->created_at->format('M d, Y') }}</td>
                                     <td class="py-3 px-4">
                                         <div class="flex gap-2">
-                                            <a href="{{ route('users.permissions', $user->id) }}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
-                                                Permissions
-                                            </a>
                                             <form method="POST" action="{{ url('/users/' . $user->id . '/status') }}">
                                                 @csrf
                                                 @method('PATCH')
